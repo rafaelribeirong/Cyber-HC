@@ -1,0 +1,1 @@
+Nesta aula vamos dar continuidade ao processo de recon, com alguns exemplos práticos. Após assistir a aula acesse: https://github.com/tomnomnom/hacks/tree/master/kxss https://github.com/tomnomnom/hacks https://github.com/s0md3v/Parth https://github.com/tomnomnom/gf https://github.com/devanshbatham/ParamSpider
