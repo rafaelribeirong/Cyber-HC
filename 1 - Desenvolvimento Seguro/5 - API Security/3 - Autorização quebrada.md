@@ -267,4 +267,3 @@ allowed_update_fields = ["phone", "address"]
 ```
 
 Qualquer outro campo deve ser ignorado ou rejeitado.
-
