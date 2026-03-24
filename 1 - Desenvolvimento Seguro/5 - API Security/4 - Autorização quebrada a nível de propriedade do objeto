@@ -1,1 +1,361 @@
-Autorização quebrada a nível de propriedade do objeto
+## Autorização quebrada a nível de propriedade do objeto
+
+### Broken Object Property Level Authorization (BOPLA)
+
+Material técnico detalhado para aula de **DevSecOps / Segurança de APIs**
+
+# Conceito técnico
+
+A vulnerabilidade **Broken Object Property Level Authorization (BOPLA)** ocorre quando o sistema controla o acesso ao objeto corretamente, porém **não controla o acesso às propriedades internas desse objeto**.
+
+Ou seja:
+
+- o usuário pode acessar o próprio recurso
+    
+- mas consegue visualizar ou modificar **atributos que deveriam ser restritos**
+    
+
+Essa falha normalmente surge em APIs modernas baseadas em:
+
+- REST
+    
+- JSON
+    
+- ORMs automáticos
+    
+- serialização automática de objetos
+    
+
+Também aparece combinada com:
+
+- Excessive Data Exposure
+    
+- Mass Assignment
+    
+- Falta de validação server-side
+    
+
+# Diferença clara entre BOLA e BOPLA
+
+BOLA  
+Usuário acessa **objeto de outra pessoa**
+
+BOPLA  
+Usuário acessa **campo proibido do próprio objeto**
+
+Exemplo simples mental:
+
+Conta bancária
+
+BOLA  
+Usuário acessa conta de outro cliente
+
+BOPLA  
+Usuário acessa sua conta mas vê:
+
+- limite interno
+    
+- score antifraude
+    
+- status administrativo
+    
+- flags internas
+    
+
+# Exemplo realista de cenário vulnerável
+
+Aplicação SaaS com endpoint:
+
+```
+GET /api/v2/account/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...
+```
+
+Resposta capturada no Burp:
+
+```json
+{
+ "user_id": 782,
+ "name": "João",
+ "email": "joao@email.com",
+ "plan": "basic",
+ "is_admin": false,
+ "internal_risk_score": 82,
+ "credit_balance": 4500,
+ "api_key": "ak_live_9sdf98sdf"
+}
+```
+
+O frontend mostra apenas:
+
+- nome
+    
+- email
+    
+- plano
+    
+
+Mas o backend expõe:
+
+- score antifraude
+    
+- saldo interno
+    
+- chave de API
+    
+- flags administrativas
+    
+
+Isso já caracteriza **BOPLA passiva (exposição de propriedade)**.
+
+# Exploração prática com Burp Suite
+
+### passo a passo detalhado (laboratório)
+
+## Passo 1 — Configurar proxy
+
+No navegador:
+
+Configurar proxy manual:
+
+```
+IP: 127.0.0.1
+Porta: 8080
+```
+
+Abrir Burp  
+Ir em:
+
+```
+Proxy → Intercept → Intercept is ON
+```
+
+Agora todo tráfego será interceptado.
+
+## Passo 2 — Capturar requisição do recurso
+
+Acessar a página “Minha conta” no sistema.
+
+Burp irá interceptar algo como:
+
+```
+GET /api/v2/account/me HTTP/1.1
+Host: app.teste.local
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+```
+
+Clicar com botão direito:
+
+```
+Send to Repeater
+```
+
+## Passo 3 — Analisar resposta completa
+
+No Repeater clicar em **Send**.
+
+Agora observar a resposta JSON completa.
+
+Checklist de pentester:
+
+- existem campos financeiros?
+    
+- existem tokens?
+    
+- existem permissões?
+    
+- existem flags internas?
+    
+- existem IDs internos?
+    
+
+Se sim → potencial BOPLA.
+
+# Exploração ativa
+
+### Manipulação de propriedades
+
+Agora testar alteração de atributos.
+
+Interceptar uma requisição de atualização de perfil:
+
+```
+PUT /api/v2/account/me
+Content-Type: application/json
+```
+
+Payload original:
+
+```json
+{
+ "phone": "21999999999"
+}
+```
+
+Modificar para:
+
+```json
+{
+ "phone": "21999999999",
+ "is_admin": true,
+ "credit_balance": 999999,
+ "plan": "enterprise"
+}
+```
+
+Enviar no Repeater.
+
+### Possíveis resultados
+
+1️⃣ API aceita alteração  
+→ escalada de privilégio  
+→ vulnerabilidade crítica
+
+2️⃣ API ignora campos  
+→ parcialmente segura
+
+3️⃣ API retorna erro de validação  
+→ provavelmente protegida
+
+# Exploração mais avançada
+
+### Inserção de propriedades ocultas
+
+Pentesters experientes testam também:
+
+```json
+{
+ "role": "superuser",
+ "permissions": ["ALL"],
+ "account_status": "active",
+ "internal_access": true
+}
+```
+
+Frameworks vulneráveis podem mapear automaticamente esses campos no modelo.
+
+Isso é típico em:
+
+- Node Express mal configurado
+    
+- Laravel sem fillable
+    
+- Spring com binding automático
+    
+- APIs GraphQL sem schema seguro
+    
+
+# Teste combinando BOPLA + Excessive Data Exposure
+
+Fluxo clássico real:
+
+1. atacante intercepta resposta
+    
+2. descobre campos ocultos
+    
+3. testa modificar esses campos
+    
+4. valida impacto
+    
+
+Esse é um **encadeamento real de exploração**
+
+# Impacto em ambiente corporativo
+
+Essa falha pode permitir:
+
+- elevação para administrador
+    
+- fraude financeira
+    
+- manipulação de limites
+    
+- acesso a dados sensíveis
+    
+- bypass de controles antifraude
+    
+- tomada total da conta
+    
+
+Em fintech ou ERP o impacto é crítico.
+
+# Como prevenir no DevSecOps
+
+### abordagem prática de engenharia segura
+
+## 1 — nunca retornar entidade direta do banco
+
+ERRADO
+
+```
+return user
+```
+
+CERTO
+
+Criar DTO seguro:
+
+```
+return {
+ name: user.name,
+ email: user.email
+}
+```
+
+## 2 — implementar whitelist de propriedades atualizáveis
+
+Exemplo Node:
+
+```
+const allowed = ["phone","address"]
+```
+
+## 3 — validar autorização por propriedade
+
+Antes de atualizar:
+
+```
+if(field === "role") deny()
+```
+
+## 4 — usar testes automatizados de segurança no pipeline
+
+No DevSecOps incluir:
+
+- testes de API security
+    
+- fuzzing de payload JSON
+    
+- scan de Mass Assignment
+    
+- testes OWASP ZAP automation
+    
+
+## 5 — logging de tentativa suspeita
+
+Registrar quando usuário tenta enviar:
+
+- is_admin
+    
+- role
+    
+- balance
+    
+- permission
+    
+
+Isso ajuda a detectar ataque em produção.
+
+# Resumo técnico para aula
+
+BOPLA é uma falha de **autorização granular**.
+
+Não é problema de autenticação.  
+Não é problema de acesso ao objeto.
+
+É problema de:
+
+> controle de acesso aos atributos internos.
+
+É muito comum em APIs modernas e deve ser tratada desde o design.
+
