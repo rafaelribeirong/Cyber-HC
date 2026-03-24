@@ -24,8 +24,6 @@ Essa falha está frequentemente associada a:
 - APIs que retornam objetos completos
     
 
----
-
 # Visão conceitual da vulnerabilidade
 
 ![Image](https://www.researchgate.net/publication/342575529/figure/fig5/AS%3A908293190991879%401593565380171/API-Response-in-JSON-Format.png)
@@ -37,8 +35,6 @@ Essa falha está frequentemente associada a:
 ![Image](https://i.sstatic.net/81buI.png)
 
 A API retorna o objeto completo e não valida quais propriedades o usuário pode visualizar ou alterar.
-
----
 
 # Exemplo prático de cenário vulnerável
 
@@ -82,8 +78,6 @@ Porém a API expõe:
 
 Isso caracteriza **exposição indevida de propriedades do objeto**.
 
----
-
 # Relação com Excessive Data Exposure
 
 Em muitos sistemas o backend retorna o objeto completo e o frontend apenas oculta campos.
@@ -100,8 +94,6 @@ O atacante usa proxy e consegue visualizar:
     
 
 Isso transforma a exposição em **vetor real de ataque**.
-
----
 
 # Exploração usando Burp Suite
 
@@ -131,8 +123,6 @@ Proxy → Intercept → ON
 
 Acessar funcionalidade da aplicação para capturar a requisição.
 
----
-
 ## Análise da resposta no Burp
 
 Enviar a requisição para o Repeater.
@@ -157,8 +147,6 @@ Agora observar:
     
 
 Isso já confirma **BOPLA passiva**.
-
----
 
 # Exploração ativa da vulnerabilidade
 
@@ -192,8 +180,6 @@ Se a API aceitar a alteração:
 
 Esse cenário representa **BOPLA combinada com Mass Assignment**.
 
----
-
 # Testes profissionais recomendados no Burp
 
 Durante o pentest devem ser realizados testes como:
@@ -225,8 +211,6 @@ Inserção de propriedades não existentes:
 
 Se a API aceitar qualquer desses valores sem validação, a falha está confirmada.
 
----
-
 # Como identificar rapidamente BOPLA em um teste real
 
 Indicadores comuns:
@@ -241,8 +225,6 @@ Indicadores comuns:
     
 - Campos administrativos expostos
     
-
----
 
 # Impacto de segurança
 
@@ -260,8 +242,6 @@ Dependendo do sistema a vulnerabilidade pode permitir:
     
 
 Em ambientes corporativos ou financeiros o impacto pode ser crítico.
-
----
 
 # Mitigação recomendada
 
